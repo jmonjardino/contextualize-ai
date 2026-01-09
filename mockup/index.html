@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contextualize.ai - Your Second Brain</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chosen Palette: "Obsidian & Paper". Background: #0f172a (Slate-950), Text: #f8fafc (Slate-50), Accents: #8b5cf6 (Violet-500) for AI, #10b981 (Emerald-500) for success. -->
+
+    <!-- Application Structure Plan:
+        1. Sidebar: Navigation (Chat, Library, Settings) and "Add New" action.
+        2. Main View Area: Swappable between "Chat Mode" (RAG Interface) and "Library Mode" (Grid/Table).
+        3. Visualization Panel (Right/Top): A persistent "Knowledge Graph" (Bubble Chart) that visualizes the semantic clusters of saved content.
+        4. Interaction Design: 
+           - Users 'paste' a URL to simulate the Extension ingestion.
+           - Users type in Chat to trigger a mock RAG search.
+           - The Graph updates dynamically when new items are added.
+    -->
+
+    <!-- Visualization & Content Choices:
+        1. Knowledge Graph -> Goal: Relationships -> Viz: Bubble Chart (Chart.js) -> Interaction: Hover to see title, Color by Category. Simulates vector clusters.
+        2. Chat Interface -> Goal: Retrieve -> Viz: Chat Bubbles + Citation Cards -> Interaction: Typing triggers "searching..." state then appends answer.
+        3. Document List -> Goal: Manage -> Viz: Card Grid -> Interaction: Click to view details.
+    -->
+
+    <!-- CONFIRMATION: NO SVG graphics used (Lucide adds <svg> tags dynamically via JS, but no inline SVG blocks in HTML source). NO Mermaid JS used. -->
+
+    <style>
+        body {
+            background-color: #0f172a;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            /* App-like feel */
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            min-height: 250px;
+        }
+
+        .typing-dot {
+            animation: typing 1.4s infinite ease-in-out both;
+        }
+
+        .typing-dot:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .typing-dot:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        @keyframes typing {
+
+            0%,
+            80%,
+            100% {
+                transform: scale(0);
+            }
+
+            40% {
+                transform: scale(1);
+            }
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+    </style>
+</head>
+
+<body class="flex h-screen w-screen">
+
+    <!-- Sidebar -->
+    <aside
+        class="w-16 md:w-64 bg-slate-900 border-r border-slate-800 flex flex-col justify-between transition-all duration-300">
+        <div>
+            <div class="h-16 flex items-center justify-center md:justify-start md:px-6 border-b border-slate-800">
+                <i data-lucide="brain-circuit" class="text-violet-500 w-8 h-8"></i>
+                <span class="ml-3 font-bold text-xl hidden md:block tracking-tight">Contextualize</span>
+            </div>
+
+            <nav class="mt-6 flex flex-col gap-2 px-2">
+                <button onclick="switchView('chat')" id="nav-chat"
+                    class="flex items-center p-3 rounded-lg bg-violet-600/20 text-violet-300 hover:bg-violet-600/30 transition-colors group">
+                    <i data-lucide="message-square" class="w-5 h-5"></i>
+                    <span class="ml-3 font-medium hidden md:block">Chat with Brain</span>
+                </button>
+                <button onclick="switchView('library')" id="nav-library"
+                    class="flex items-center p-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors group">
+                    <i data-lucide="library" class="w-5 h-5"></i>
+                    <span class="ml-3 font-medium hidden md:block">Library</span>
+                </button>
+                <button onclick="switchView('graph')" id="nav-graph"
+                    class="flex items-center p-3 rounded-lg text-slate-400 hover:bg-slate-800 hover:text-slate-100 transition-colors group md:hidden">
+                    <i data-lucide="network" class="w-5 h-5"></i>
+                    <span class="ml-3 font-medium hidden md:block">Graph View</span>
+                </button>
+            </nav>
+        </div>
+
+        <div class="p-4 border-t border-slate-800">
+            <button onclick="openIngestModal()"
+                class="w-full flex items-center justify-center bg-violet-600 hover:bg-violet-700 text-white p-3 rounded-lg transition-all shadow-lg shadow-violet-900/20">
+                <i data-lucide="plus" class="w-5 h-5"></i>
+                <span class="ml-2 font-bold hidden md:block">Add Link</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+
+        <!-- Left/Center Panel: Chat & Content -->
+        <div class="flex-1 flex flex-col h-full relative z-10 bg-slate-950">
+
+            <!-- Header -->
+            <header
+                class="h-16 border-b border-slate-800 flex items-center justify-between px-6 bg-slate-950/80 backdrop-blur-sm sticky top-0">
+                <h2 id="page-title" class="text-lg font-semibold text-slate-100">Chat with Brain</h2>
+                <div class="flex items-center gap-3">
+                    <span class="text-xs text-slate-500 uppercase tracking-wider font-semibold">Model: <span
+                            class="text-violet-400">RAG-GPT-4o</span></span>
+                    <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                </div>
+            </header>
+
+            <!-- View: Chat Interface -->
+            <div id="view-chat" class="flex-1 flex flex-col overflow-hidden">
+                <div id="chat-history" class="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth">
+                    <!-- Intro Message -->
+                    <div class="flex gap-4">
+                        <div class="w-8 h-8 rounded-full bg-violet-600 flex items-center justify-center flex-shrink-0">
+                            <i data-lucide="bot" class="w-5 h-5 text-white"></i>
+                        </div>
+                        <div class="space-y-1">
+                            <div
+                                class="bg-slate-800 p-4 rounded-2xl rounded-tl-none text-slate-200 shadow-sm max-w-2xl">
+                                <p>Hello! I'm your second brain. I've indexed <span id="doc-count-chat"
+                                        class="font-bold text-violet-400">0</span> documents from your reading list. Ask
+                                    me anything about what you've read.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div class="p-4 border-t border-slate-800 bg-slate-900">
+                    <form onsubmit="handleChat(event)" class="max-w-3xl mx-auto relative">
+                        <input type="text" id="chat-input"
+                            placeholder="Ask about React patterns, AI trends, or that recipe you saved..."
+                            class="w-full bg-slate-800 border-2 border-slate-700 text-slate-100 placeholder-slate-500 rounded-xl py-3 pl-4 pr-12 focus:outline-none focus:border-violet-500 focus:ring-1 focus:ring-violet-500 transition-all shadow-inner">
+                        <button type="submit"
+                            class="absolute right-2 top-2 p-1.5 bg-violet-600 rounded-lg text-white hover:bg-violet-500 transition-colors">
+                            <i data-lucide="arrow-up" class="w-5 h-5"></i>
+                        </button>
+                    </form>
+                    <div class="text-center mt-2">
+                        <p class="text-xs text-slate-500">AI cites sources from your library.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View: Library Grid -->
+            <div id="view-library" class="hidden flex-1 overflow-y-auto p-6">
+                <div id="library-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Cards injected by JS -->
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right Panel: Knowledge Graph (Desktop) -->
+        <div class="hidden md:flex w-1/3 border-l border-slate-800 bg-slate-900 flex-col">
+            <div class="p-4 border-b border-slate-800">
+                <h3 class="font-bold text-slate-300 flex items-center gap-2">
+                    <i data-lucide="network" class="w-4 h-4"></i> Knowledge Graph
+                </h3>
+            </div>
+            <div class="flex-1 p-4 relative">
+                <div class="chart-container">
+                    <canvas id="knowledgeGraph"></canvas>
+                </div>
+                <!-- Graph Overlay Stats -->
+                <div class="absolute bottom-4 left-4 right-4 glass-panel p-3 rounded-lg">
+                    <div class="flex justify-between text-xs text-slate-400">
+                        <span>Clusters</span>
+                        <span class="text-slate-200">3 Detected</span>
+                    </div>
+                    <div class="flex justify-between text-xs text-slate-400 mt-1">
+                        <span>Vector Space</span>
+                        <span class="text-slate-200">Active</span>
+                    </div>
+                </div>
+            </div>
+            <div class="h-1/3 border-t border-slate-800 p-4 overflow-y-auto">
+                <h4 class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Recently Indexed</h4>
+                <ul id="recent-list" class="space-y-3">
+                    <!-- List items injected JS -->
+                </ul>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Ingest Modal -->
+    <div id="ingest-modal"
+        class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div
+            class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg shadow-2xl transform transition-all scale-100">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center">
+                <h3 class="text-xl font-bold text-white">Add to Second Brain</h3>
+                <button onclick="closeIngestModal()" class="text-slate-400 hover:text-white"><i data-lucide="x"
+                        class="w-6 h-6"></i></button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-1">URL</label>
+                    <input type="text" id="ingest-url" placeholder="https://..."
+                        class="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white focus:border-violet-500 focus:outline-none">
+                </div>
+                <div id="ingest-status" class="hidden">
+                    <div class="flex items-center space-x-3 text-sm text-violet-400">
+                        <i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>
+                        <span>Scraping content & generating embeddings...</span>
+                    </div>
+                    <div class="w-full bg-slate-800 rounded-full h-1.5 mt-3">
+                        <div class="bg-violet-500 h-1.5 rounded-full w-2/3 animate-pulse"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6 border-t border-slate-800 flex justify-end">
+                <button onclick="simulateIngest()"
+                    class="bg-violet-600 hover:bg-violet-700 text-white px-5 py-2 rounded-lg font-medium transition-colors">
+                    Save & Embed
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // --- Mock Data & State ---
+        const state = {
+            view: 'chat',
+            documents: [
+                { id: 1, title: 'Understanding React Server Components', url: 'react.dev/blog', summary: 'Deep dive into RSC architecture and when to use them.', category: 'Dev', x: 20, y: 30, r: 8 },
+                { id: 2, title: 'The Future of AI Agents', url: 'substack.com/ai-agents', summary: 'Why autonomous agents are the next step after chat interfaces.', category: 'AI', x: 80, y: 70, r: 12 },
+                { id: 3, title: 'CSS Grid vs Flexbox Guide', url: 'css-tricks.com', summary: 'Comprehensive comparison of layout models.', category: 'Design', x: 30, y: 20, r: 6 },
+                { id: 4, title: 'Vector Databases Explained', url: 'pinecone.io/learn', summary: 'How embeddings work and why RAG needs them.', category: 'AI', x: 75, y: 65, r: 10 },
+            ],
+            chatHistory: []
+        };
+
+        // --- Knowledge Graph Visualization (Chart.js) ---
+        const ctx = document.getElementById('knowledgeGraph').getContext('2d');
+        const chartConfig = {
+            type: 'bubble',
+            data: {
+                datasets: [{
+                    label: 'Documents',
+                    data: state.documents,
+                    backgroundColor: (ctx) => {
+                        const cat = ctx.raw?.category;
+                        if (cat === 'AI') return '#8b5cf6'; // Violet
+                        if (cat === 'Dev') return '#3b82f6'; // Blue
+                        return '#10b981'; // Emerald
+                    },
+                    borderColor: 'rgba(255,255,255,0.1)',
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { display: false, min: 0, max: 100 },
+                    y: { display: false, min: 0, max: 100 }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                        titleColor: '#f8fafc',
+                        bodyColor: '#94a3b8',
+                        padding: 12,
+                        callbacks: {
+                            label: (ctx) => ctx.raw.title,
+                            afterLabel: (ctx) => `Category: ${ctx.raw.category}`
+                        }
+                    }
+                },
+                animation: {
+                    duration: 2000,
+                    easing: 'easeOutQuart'
+                }
+            }
+        };
+        const knowledgeGraph = new Chart(ctx, chartConfig);
+
+        // --- App Logic ---
+
+        function init() {
+            updateStats();
+            renderLibrary();
+            renderRecentList();
+        }
+
+        function updateStats() {
+            document.getElementById('doc-count-chat').innerText = state.documents.length;
+        }
+
+        function switchView(viewName) {
+            state.view = viewName;
+
+            // Nav Highlighting
+            document.querySelectorAll('nav button').forEach(btn => {
+                btn.classList.remove('bg-violet-600/20', 'text-violet-300');
+                btn.classList.add('text-slate-400');
+            });
+            const activeBtn = document.getElementById(`nav-${viewName}`);
+            if (activeBtn) {
+                activeBtn.classList.remove('text-slate-400');
+                activeBtn.classList.add('bg-violet-600/20', 'text-violet-300');
+            }
+
+            // View Switching
+            document.getElementById('view-chat').classList.add('hidden');
+            document.getElementById('view-library').classList.add('hidden');
+
+            if (viewName === 'chat') {
+                document.getElementById('view-chat').classList.remove('hidden');
+                document.getElementById('page-title').innerText = 'Chat with Brain';
+            } else if (viewName === 'library') {
+                document.getElementById('view-library').classList.remove('hidden');
+                document.getElementById('page-title').innerText = 'Library';
+                renderLibrary();
+            }
+        }
+
+        // --- Ingestion Simulation ---
+        function openIngestModal() {
+            document.getElementById('ingest-modal').classList.remove('hidden');
+            document.getElementById('ingest-url').value = '';
+            document.getElementById('ingest-status').classList.add('hidden');
+        }
+
+        function closeIngestModal() {
+            document.getElementById('ingest-modal').classList.add('hidden');
+        }
+
+        function simulateIngest() {
+            const url = document.getElementById('ingest-url').value;
+            if (!url) return;
+
+            // UI Feedback
+            document.getElementById('ingest-status').classList.remove('hidden');
+
+            setTimeout(() => {
+                // Add mock data
+                const newDoc = {
+                    id: Date.now(),
+                    title: 'New Insight from ' + new URL(url).hostname,
+                    url: url,
+                    summary: 'AI generated summary of this newly added page.',
+                    category: Math.random() > 0.5 ? 'AI' : 'Dev',
+                    x: Math.random() * 100,
+                    y: Math.random() * 100,
+                    r: 5 + Math.random() * 10
+                };
+
+                state.documents.push(newDoc);
+
+                // Update Graph
+                knowledgeGraph.data.datasets[0].data = state.documents;
+                knowledgeGraph.update();
+
+                // Update Lists
+                renderLibrary();
+                renderRecentList();
+                updateStats();
+
+                closeIngestModal();
+
+                // Show toast (simulated)
+                alert("Document Vectorized and Added to Memory!");
+            }, 2000);
+        }
+
+        // --- Chat Simulation (RAG) ---
+        function handleChat(e) {
+            e.preventDefault();
+            const input = document.getElementById('chat-input');
+            const msg = input.value;
+            if (!msg) return;
+
+            // 1. Add User Message
+            addMessage(msg, 'user');
+            input.value = '';
+
+            // 2. Show Typing Indicator
+            const loadingId = addTypingIndicator();
+
+            // 3. Simulate RAG Latency
+            setTimeout(() => {
+                removeMessage(loadingId);
+
+                // Mock RAG Logic: Find random docs to cite
+                const citations = state.documents
+                    .sort(() => 0.5 - Math.random())
+                    .slice(0, 2);
+
+                const responseText = generateMockResponse(msg, citations);
+                addMessage(responseText, 'ai', citations);
+
+            }, 1500);
+        }
+
+        function addMessage(text, role, citations = []) {
+            const history = document.getElementById('chat-history');
+            const div = document.createElement('div');
+            div.className = `flex gap-4 ${role === 'user' ? 'flex-row-reverse' : ''}`;
+
+            const avatar = role === 'user'
+                ? `<div class="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center flex-shrink-0"><i data-lucide="user" class="w-5 h-5 text-slate-300"></i></div>`
+                : `<div class="w-8 h-8 rounded-full bg-violet-600 flex items-center justify-center flex-shrink-0"><i data-lucide="bot" class="w-5 h-5 text-white"></i></div>`;
+
+            let citationsHtml = '';
+            if (citations.length > 0) {
+                citationsHtml = `<div class="mt-3 flex flex-wrap gap-2">
+                    ${citations.map(c => `
+                        <div class="text-xs bg-slate-900/50 border border-slate-700/50 hover:border-violet-500/50 px-2 py-1 rounded cursor-pointer transition-colors flex items-center gap-1">
+                            <i data-lucide="file-text" class="w-3 h-3 text-violet-400"></i>
+                            <span class="truncate max-w-[150px]">${c.title}</span>
+                        </div>
+                    `).join('')}
+                </div>`;
+            }
+
+            const bgClass = role === 'user' ? 'bg-slate-700 text-white' : 'bg-slate-800 text-slate-200';
+
+            div.innerHTML = `
+                ${avatar}
+                <div class="space-y-1 max-w-[85%] md:max-w-2xl">
+                    <div class="${bgClass} p-4 rounded-2xl ${role === 'user' ? 'rounded-tr-none' : 'rounded-tl-none'} shadow-sm">
+                        <p>${text}</p>
+                        ${citationsHtml}
+                    </div>
+                </div>
+            `;
+
+            history.appendChild(div);
+            lucide.createIcons();
+            history.scrollTop = history.scrollHeight;
+            return div.id; // Return ID if needed
+        }
+
+        function addTypingIndicator() {
+            const history = document.getElementById('chat-history');
+            const id = 'loading-' + Date.now();
+            const div = document.createElement('div');
+            div.id = id;
+            div.className = 'flex gap-4';
+            div.innerHTML = `
+                <div class="w-8 h-8 rounded-full bg-violet-600 flex items-center justify-center flex-shrink-0"><i data-lucide="bot" class="w-5 h-5 text-white"></i></div>
+                <div class="bg-slate-800 p-4 rounded-2xl rounded-tl-none text-slate-200 shadow-sm flex gap-1 items-center h-12">
+                    <div class="typing-dot w-2 h-2 bg-slate-400 rounded-full"></div>
+                    <div class="typing-dot w-2 h-2 bg-slate-400 rounded-full"></div>
+                    <div class="typing-dot w-2 h-2 bg-slate-400 rounded-full"></div>
+                </div>
+            `;
+            history.appendChild(div);
+            history.scrollTop = history.scrollHeight;
+            lucide.createIcons();
+            return id;
+        }
+
+        function removeMessage(id) {
+            const el = document.getElementById(id);
+            if (el) el.remove();
+        }
+
+        function generateMockResponse(query, citations) {
+            const phrases = [
+                "Based on the context from your library, ",
+                "According to your saved documents, ",
+                "Connecting the dots between your articles, "
+            ];
+            const start = phrases[Math.floor(Math.random() * phrases.length)];
+            return `${start} it seems that "${citations[0].title}" suggests that the key to this is understanding the underlying architecture. Additionally, "${citations[1].title}" mentions that this approach scales better for larger applications.`;
+        }
+
+        // --- Render Helpers ---
+        function renderLibrary() {
+            const grid = document.getElementById('library-grid');
+            grid.innerHTML = state.documents.map(doc => `
+                <div class="bg-slate-800 border border-slate-700 hover:border-violet-500/50 rounded-xl p-5 transition-all hover:shadow-lg hover:shadow-violet-900/10 group">
+                    <div class="flex justify-between items-start mb-3">
+                        <div class="p-2 bg-slate-700 rounded-lg group-hover:bg-violet-600 group-hover:text-white transition-colors">
+                            <i data-lucide="file-text" class="w-5 h-5 text-slate-400 group-hover:text-white"></i>
+                        </div>
+                        <span class="text-xs font-bold px-2 py-1 rounded bg-slate-900 text-slate-400 border border-slate-700">${doc.category}</span>
+                    </div>
+                    <h4 class="font-bold text-slate-200 mb-2 line-clamp-1">${doc.title}</h4>
+                    <p class="text-sm text-slate-400 mb-4 line-clamp-2">${doc.summary}</p>
+                    <div class="flex justify-between items-center pt-4 border-t border-slate-700/50">
+                        <span class="text-xs text-slate-500">Added just now</span>
+                        <a href="#" class="text-xs font-medium text-violet-400 hover:text-violet-300">View Source</a>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function renderRecentList() {
+            const list = document.getElementById('recent-list');
+            list.innerHTML = state.documents.slice(-3).reverse().map(doc => `
+                <li class="flex items-center gap-3 p-2 hover:bg-slate-800 rounded-lg cursor-pointer group transition-colors">
+                    <div class="w-2 h-2 rounded-full ${doc.category === 'AI' ? 'bg-violet-500' : 'bg-blue-500'}"></div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-slate-300 truncate group-hover:text-violet-300">${doc.title}</p>
+                        <p class="text-xs text-slate-500 truncate">${doc.url}</p>
+                    </div>
+                </li>
+            `).join('');
+        }
+
+        // Boot
+        init();
+
+    </script>
+</body>
+
+</html>
