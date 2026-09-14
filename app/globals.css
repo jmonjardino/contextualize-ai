@@ -1,26 +1,121 @@
-@import "tailwindcss";
+@import "tailwindcss" source(none);
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Scan the app only — `design/` holds the published design canvas, which is
+   two megabytes of editor payload and has nothing Tailwind needs. */
+@source "../app";
+@source "../components";
+@source "../lib";
+
+/* ---------------------------------------------------------------------------
+   Card Catalogue — the Contextualize design language.
+   Warm paper, hairline rules, terracotta + moss. Every value here is the one
+   used in the design canvas; see design/System.dc.html for the specimen sheet.
+--------------------------------------------------------------------------- */
+@theme {
+  /* ground */
+  --color-paper: #fbf9f5;
+  --color-paper-sunk: #f4f1ea;
+  --color-paper-raised: #f8f5f0;
+  --color-surface: #ffffff;
+  --color-rule: #e3ddd1;
+  --color-rule-firm: #d6cebf;
+  --color-rule-soft: #efebe2;
+
+  /* ink */
+  --color-ink: #17140f;
+  --color-ink-soft: #3d372e;
+  --color-muted: #78705f;
+  --color-faint: #9c9384;
+  --color-dim: #b8b0a0;
+
+  /* accent */
+  --color-ember: #b2492a;
+  --color-ember-deep: #8e3a21;
+  --color-ember-wash: #f3e4db;
+  --color-ember-line: #e6cec1;
+  --color-moss: #2e6a55;
+  --color-moss-wash: #e0ebe5;
+  --color-moss-line: #cfe0d8;
+  --color-gold: #8a6a2f;
+
+  /* type */
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", monospace;
+  --font-display: var(--font-instrument-serif), "Times New Roman", Georgia, serif;
+
+  /* geometry — nothing is rounder than 5px except pills */
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 5px;
+
+  /* depth — reserved for things genuinely above the page */
+  --shadow-card: 0 12px 28px rgba(23, 20, 15, 0.13);
+  --shadow-modal: 0 26px 64px rgba(23, 20, 15, 0.3);
+  --shadow-lift: 0 22px 52px rgba(23, 20, 15, 0.1);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@layer base {
+  html {
+    color-scheme: light;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  body {
+    background: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: var(--color-ember-wash);
+    color: var(--color-ink);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-ember);
+    outline-offset: 2px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 9px;
+    height: 9px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-rule-firm);
+    border-radius: 9px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-faint);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  /* mono, uppercase, letter-spaced: anything the machine measured */
+  .label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+}
+
+@keyframes cx-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-fade-up {
+  animation: cx-fade-up 320ms cubic-bezier(0.2, 0.7, 0.3, 1) both;
 }

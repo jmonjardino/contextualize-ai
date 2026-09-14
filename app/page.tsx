@@ -1,9 +1,27 @@
+import { Hero } from "@/components/marketing/hero";
+import { MarketingNav } from "@/components/marketing/nav";
+import {
+  BuiltOn,
+  FinalCta,
+  HowItWorks,
+  Limits,
+  MarketingFooter,
+  ProblemBand,
+} from "@/components/marketing/sections";
+
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-900">
-      <h1 className="text-3xl font-bold text-white">
-        Contextualize.ai: System Online
-      </h1>
+    <div className="min-h-dvh bg-paper">
+      <MarketingNav />
+      <main>
+        <Hero />
+        <ProblemBand />
+        <HowItWorks />
+        <Limits />
+        <BuiltOn />
+        <FinalCta />
+      </main>
+      <MarketingFooter />
     </div>
   );
 }

@@ -1,0 +1,31 @@
+{
+  "pages": [
+    { "id": "page-1", "name": "App" },
+    { "id": "page-2", "name": "Marketing & auth" },
+    { "id": "page-3", "name": "Foundations" }
+  ],
+  "artboards": [
+    { "file": "Main.dc.html",     "x": 0,    "y": 0,    "w": 1440, "h": 900,  "page": "page-1", "title": "Ask" },
+    { "file": "Capture.dc.html",  "x": 1560, "y": 0,    "w": 1440, "h": 900,  "page": "page-1", "title": "Capture" },
+    { "file": "Graph.dc.html",    "x": 3120, "y": 0,    "w": 1440, "h": 900,  "page": "page-1", "title": "Knowledge graph" },
+    { "file": "Library.dc.html",  "x": 0,    "y": 1060, "w": 1440, "h": 900,  "page": "page-1", "title": "Library" },
+    { "file": "Document.dc.html", "x": 1560, "y": 1060, "w": 1440, "h": 960,  "page": "page-1", "title": "Document" },
+
+    { "file": "Landing.dc.html",  "x": 0,    "y": 0,    "w": 1440, "h": 2600, "page": "page-2", "title": "Landing" },
+    { "file": "SignIn.dc.html",   "x": 1560, "y": 0,    "w": 1440, "h": 900,  "page": "page-2", "title": "Sign in" },
+    { "file": "Mobile.dc.html",   "x": 1560, "y": 1060, "w": 390,  "h": 844,  "page": "page-2", "title": "Ask on mobile" },
+
+    { "file": "System.dc.html",   "x": 0,    "y": 0,    "w": 1180, "h": 2040, "page": "page-3", "title": "Card Catalogue" }
+  ],
+  "annotations": [
+    { "id": "note-direction", "x": 0, "y": -210, "w": 700, "page": "page-1",
+      "text": "CARD CATALOGUE — the direction\n\nWarm paper, hairline rules, terracotta + moss on ink. Instrument Serif for display, IBM Plex Sans for UI, IBM Plex Mono for anything the machine measured (scores, counts, chunk ids).\n\nThe idea: a library card catalogue crossed with a technical instrument — deliberately not the violet-on-slate AI default." },
+    { "id": "note-context", "x": 3120, "y": -140, "w": 560, "page": "page-1",
+      "text": "The retrieval panel on Ask, the chunk markers in the margin of Document, and this graph all show the same thing: what the machine actually matched. Trust in RAG comes from seeing the evidence, not from a spinner." },
+    { "id": "note-copy", "x": 0, "y": -150, "w": 640, "page": "page-2",
+      "text": "Copy is written for this product, not filler — but document titles, domains, counts and scores are SAMPLE data. Real facts that I do not have (company, city) are left bracketed." },
+    { "id": "note-system", "x": 0, "y": -130, "w": 560, "page": "page-3",
+      "text": "Every value here is the one used in the screens, and the same tokens are implemented in app/globals.css in the repo." }
+  ],
+  "launch": { "view": "canvas", "page": "page-1" }
+}

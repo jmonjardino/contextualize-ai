@@ -1,0 +1,4 @@
+# Screenshots taken while checking the artboards and the running app
+*.png
+# The seeded canvas payload (~2.7 MB of editor code); re-seed it instead
+contextualize-card-catalogue.html
