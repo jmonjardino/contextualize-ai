@@ -33,12 +33,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${plexSans.variable} ${plexMono.variable} ${instrumentSerif.variable} antialiased`}
-      >
-        {children}
-      </body>
+    // The font variables go on <html>, not <body>: Tailwind resolves the theme
+    // in :root, and a var() it cannot substitute there invalidates the whole
+    // custom property — which silently drops the type system to a fallback.
+    <html
+      lang="en"
+      className={`${plexSans.variable} ${plexMono.variable} ${instrumentSerif.variable}`}
+    >
+      <body className="antialiased">{children}</body>
     </html>
   );
 }

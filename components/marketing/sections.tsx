@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { CloseIcon } from "@/components/icons";
 import { ButtonLink } from "@/components/ui/button";
 import { GoogleMark } from "@/components/icons";
@@ -222,10 +224,23 @@ export function FinalCta() {
   );
 }
 
-const FOOTER = [
-  { heading: "Product", items: ["How it works", "Extension", "Changelog"] },
-  { heading: "Your data", items: ["Export", "Delete account", "Security"] },
-  { heading: "Elsewhere", items: ["Docs", "Status", "Contact"] },
+const FOOTER: { heading: string; items: { label: string; href?: string }[] }[] = [
+  {
+    heading: "Product",
+    items: [
+      { label: "How it works", href: "#how" },
+      { label: "Extension" },
+      { label: "Changelog" },
+    ],
+  },
+  {
+    heading: "Your data",
+    items: [{ label: "Export" }, { label: "Delete account" }, { label: "Security" }],
+  },
+  {
+    heading: "Elsewhere",
+    items: [{ label: "Foundations", href: "/foundations" }, { label: "Docs" }, { label: "Status" }],
+  },
 ];
 
 export function MarketingFooter() {
@@ -242,11 +257,21 @@ export function MarketingFooter() {
         {FOOTER.map((column) => (
           <div key={column.heading} className="flex min-w-32 flex-col gap-2.5">
             <Label className="text-muted">{column.heading}</Label>
-            {column.items.map((item) => (
-              <span key={item} className="text-[12.5px] text-faint">
-                {item}
-              </span>
-            ))}
+            {column.items.map((item) =>
+              item.href ? (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className="text-[12.5px] text-faint hover:text-ember"
+                >
+                  {item.label}
+                </Link>
+              ) : (
+                <span key={item.label} className="text-[12.5px] text-faint">
+                  {item.label}
+                </span>
+              ),
+            )}
           </div>
         ))}
       </div>

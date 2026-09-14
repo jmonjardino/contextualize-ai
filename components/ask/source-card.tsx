@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { Similarity } from "@/components/ui/similarity";
-import { docById, type Citation } from "@/lib/data/library";
+import { docById, savedLabel, type Citation } from "@/lib/data/library";
 
 export function SourceCard({ citation }: { citation: Citation }) {
   const doc = docById(citation.docId);
@@ -22,7 +22,7 @@ export function SourceCard({ citation }: { citation: Citation }) {
       <p className="mt-auto flex items-center gap-1.5 font-mono text-[10px] text-muted">
         <span className="truncate">{doc.domain}</span>
         <span className="text-rule-firm">·</span>
-        <span className="shrink-0 text-faint">{doc.savedLabel}</span>
+        <span className="shrink-0 text-faint">{savedLabel(doc)}</span>
       </p>
     </Link>
   );

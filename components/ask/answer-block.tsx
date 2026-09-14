@@ -61,7 +61,7 @@ export function AnswerBlock({
               <Label>Sources</Label>
               <span className="h-px grow bg-rule" />
             </div>
-            <div className="mt-2.5 flex gap-2.5 max-md:flex-col">
+            <div className="mt-2.5 flex gap-2.5 max-md:-mx-6 max-md:snap-x max-md:overflow-x-auto max-md:px-6 [&>a]:max-md:w-54 [&>a]:max-md:shrink-0 [&>a]:max-md:snap-start">
               {answer.citations.map((citation) => (
                 <SourceCard key={citation.marker} citation={citation} />
               ))}

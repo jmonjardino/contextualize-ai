@@ -2,7 +2,7 @@ import { GraphIcon } from "@/components/icons";
 import { Label } from "@/components/ui/label";
 import { Similarity } from "@/components/ui/similarity";
 import { NeighbourhoodGraph } from "@/components/graph/neighbourhood-graph";
-import { docById, type Answer } from "@/lib/data/library";
+import { docById, docRef, type Answer } from "@/lib/data/library";
 
 /**
  * What retrieval actually returned. Showing the passages — and how many fell
@@ -30,7 +30,7 @@ export function ContextRail({ answer }: { answer: Answer | null }) {
                 >
                   <div className="mb-[7px] flex items-center justify-between gap-2">
                     <span className="font-mono text-[9.5px] tracking-[0.07em] text-muted">
-                      CHUNK {String(chunk.index).padStart(2, "0")} · №{doc?.ref}
+                      CHUNK {String(chunk.index).padStart(2, "0")} · №{doc ? docRef(doc) : "----"}
                     </span>
                     <Similarity value={chunk.similarity} width={38} />
                   </div>
@@ -62,11 +62,11 @@ export function ContextRail({ answer }: { answer: Answer | null }) {
           <Label>Query neighbourhood</Label>
           <span className="flex items-center gap-1.5 font-mono text-[10px] text-faint">
             <GraphIcon size={12} />
-            19 NODES
+            {answer ? `${answer.citations.length} CITED` : "IDLE"}
           </span>
         </div>
         <div className="overflow-hidden rounded-sm border border-rule bg-paper">
-          <NeighbourhoodGraph />
+          <NeighbourhoodGraph docIds={answer ? answer.citations.map((c) => c.docId) : []} />
         </div>
       </div>
     </aside>

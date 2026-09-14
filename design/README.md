@@ -26,6 +26,23 @@ python3 build6.py        # Foundations
 Then re-seed and publish the canvas with the `design` skill's helper, passing
 every artboard plus `canvas.json`.
 
+## Checking the running app against the artboards
+
+`app-shot.mjs` screenshots routes of the running app; `sweep.mjs` loads every
+route at 390 / 768 / 1440 px and reports horizontal overflow and console
+errors. Both drive Chromium through Playwright, which is not a project
+dependency — install it when you need them:
+
+```bash
+npm install --no-save playwright && npx playwright install chromium
+npm run build && npm run start
+node design/sweep.mjs
+node design/app-shot.mjs "/graph|graph|1440|900"
+```
+
+Both read `BASE_URL` (default `http://localhost:3000`) and `CHROME_PATH` if you
+need to point at a browser Playwright did not install itself.
+
 ## Note
 
 Document titles, domains, similarity scores and counts across the artboards are

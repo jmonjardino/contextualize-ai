@@ -17,7 +17,7 @@ type Turn =
   | { kind: "answer"; answer: Answer }
   | { kind: "pending" };
 
-export function AskView() {
+export function AskView({ scopeDoc }: { scopeDoc?: { id: string; title: string } }) {
   const [turns, setTurns] = useState<Turn[]>([
     { kind: "question", text: SAMPLE_ANSWER.question, at: SAMPLE_ANSWER.askedAt },
     { kind: "answer", answer: SAMPLE_ANSWER },
@@ -91,7 +91,7 @@ export function AskView() {
             })}
           </div>
 
-          <Composer onSubmit={ask} busy={busy} />
+          <Composer onSubmit={ask} busy={busy} scopeDoc={scopeDoc} />
         </section>
 
         <ContextRail answer={busy ? null : latestAnswer} />

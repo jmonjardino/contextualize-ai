@@ -7,7 +7,7 @@ import { AskIcon, GraphIcon, LibraryIcon, PlusIcon, TuneIcon } from "@/component
 import { Dot, Label } from "@/components/ui/label";
 import { Wordmark } from "@/components/workspace/wordmark";
 import { useCapture } from "@/components/workspace/capture-provider";
-import { CLUSTERS, LIBRARY_STATS, USER } from "@/lib/data/library";
+import { CLUSTERS, clusterCount, LIBRARY_STATS, USER } from "@/lib/data/library";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -79,10 +79,24 @@ export function Sidebar() {
                 style={{ background: cluster.color }}
               />
               <span className="grow text-[12.5px] text-ink-soft">{cluster.name}</span>
-              <span className="font-mono text-[10.5px] text-faint">{cluster.count}</span>
+              <span className="font-mono text-[10.5px] text-faint">{clusterCount(cluster.id)}</span>
             </Link>
           </li>
         ))}
+        {LIBRARY_STATS.unclustered > 0 ? (
+          <li>
+            <Link
+              href="/library?cluster=unplaced"
+              className="flex h-[27px] items-center gap-2.5 rounded-sm px-[11px] hover:bg-[#ece7dd]"
+            >
+              <span className="size-[7px] shrink-0 rounded-full border border-rule-firm" />
+              <span className="grow text-[12.5px] text-faint">Not yet placed</span>
+              <span className="font-mono text-[10.5px] text-faint">
+                {LIBRARY_STATS.unclustered}
+              </span>
+            </Link>
+          </li>
+        ) : null}
       </ul>
 
       <div className="mt-auto border-t border-rule px-4 py-3.5">

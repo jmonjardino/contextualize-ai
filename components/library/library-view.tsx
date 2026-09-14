@@ -11,26 +11,39 @@ import {
   SearchIcon,
   TrashIcon,
 } from "@/components/icons";
-import { Button } from "@/components/ui/button";
+import { Button, ButtonLink } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { Label } from "@/components/ui/label";
 import { TopBar } from "@/components/workspace/topbar";
 import { useCapture } from "@/components/workspace/capture-provider";
-import { CLUSTERS, clusterById, DOCS, LIBRARY_STATS, type ClusterId } from "@/lib/data/library";
+import {
+  chunkCount,
+  CLUSTERS,
+  clusterById,
+  clusterCount,
+  docRef,
+  DOCS,
+  LIBRARY_STATS,
+  savedLabel,
+  type ClusterId,
+} from "@/lib/data/library";
+import { cn } from "@/lib/utils";
 
-type Filter = "all" | "unread" | ClusterId;
+type Filter = "all" | "unread" | "unplaced" | ClusterId;
 
-export function LibraryView({ initialCluster }: { initialCluster?: ClusterId }) {
+export function LibraryView({ initialFilter }: { initialFilter?: ClusterId | "unplaced" }) {
   const { open } = useCapture();
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<Filter>(initialCluster ?? "all");
+  const [filter, setFilter] = useState<Filter>(initialFilter ?? "all");
   const [newestFirst, setNewestFirst] = useState(true);
 
   const rows = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return DOCS.filter((doc) => {
       if (filter === "unread" && !doc.unread) return false;
-      if (filter !== "all" && filter !== "unread" && doc.cluster !== filter) return false;
+      if (filter === "unplaced" && doc.cluster !== null) return false;
+      if (filter !== "all" && filter !== "unread" && filter !== "unplaced" && doc.cluster !== filter)
+        return false;
       if (!needle) return true;
       return (
         doc.title.toLowerCase().includes(needle) ||
@@ -45,7 +58,9 @@ export function LibraryView({ initialCluster }: { initialCluster?: ClusterId }) 
     );
   }, [query, filter, newestFirst]);
 
-  const unread = DOCS.filter((doc) => doc.unread).length;
+
+
+  const activeCluster = CLUSTERS.find((c) => c.id === filter) ?? null;
 
   return (
     <>
@@ -78,23 +93,31 @@ export function LibraryView({ initialCluster }: { initialCluster?: ClusterId }) 
           />
         </div>
 
+        {/* Clusters live in the sidebar; the toolbar keeps the filters that
+            cut across them, plus whichever cluster you arrived on. */}
         <div className="flex min-w-0 grow items-center gap-2 overflow-x-auto">
           <Chip active={filter === "all"} onClick={() => setFilter("all")}>
             All
           </Chip>
-          <Chip active={filter === "unread"} onClick={() => setFilter("unread")} count={unread}>
+          <Chip
+            active={filter === "unread"}
+            onClick={() => setFilter("unread")}
+            count={LIBRARY_STATS.unread}
+          >
             Unread
           </Chip>
-          {CLUSTERS.map((cluster) => (
-            <Chip
-              key={cluster.id}
-              active={filter === cluster.id}
-              onClick={() => setFilter(cluster.id)}
-              count={cluster.count}
-            >
-              {cluster.name}
+          <Chip
+            active={filter === "unplaced"}
+            onClick={() => setFilter("unplaced")}
+            count={LIBRARY_STATS.unclustered}
+          >
+            Not yet placed
+          </Chip>
+          {activeCluster ? (
+            <Chip active onClick={() => setFilter("all")} count={clusterCount(activeCluster.id)}>
+              {activeCluster.name}
             </Chip>
-          ))}
+          ) : null}
         </div>
 
         <div className="flex shrink-0 items-center gap-2.5 max-lg:hidden">
@@ -124,7 +147,7 @@ export function LibraryView({ initialCluster }: { initialCluster?: ClusterId }) 
               className="group flex items-start gap-[18px] border-b border-rule-soft py-3.5 pr-6 pl-5 transition-colors hover:bg-paper-sunk"
             >
               <span className="w-10 shrink-0 pt-0.5 font-mono text-[10.5px] text-faint">
-                №{doc.ref}
+                №{docRef(doc)}
               </span>
 
               <Link href={`/library/${doc.id}`} className="min-w-0 grow">
@@ -146,13 +169,23 @@ export function LibraryView({ initialCluster }: { initialCluster?: ClusterId }) 
               <span className="flex w-32 shrink-0 items-center gap-2 pt-0.5 max-lg:hidden">
                 <span
                   className="size-1.5 shrink-0 rounded-full"
-                  style={{ background: cluster.color }}
+                  style={{
+                    background: cluster?.color ?? "transparent",
+                    boxShadow: cluster ? undefined : "inset 0 0 0 1px var(--color-rule-firm)",
+                  }}
                 />
-                <span className="truncate text-[11.5px] text-ink-soft">{cluster.name}</span>
+                <span
+                  className={cn(
+                    "truncate text-[11.5px]",
+                    cluster ? "text-ink-soft" : "text-faint",
+                  )}
+                >
+                  {cluster?.name ?? "Not yet placed"}
+                </span>
               </span>
 
               <span className="w-[58px] shrink-0 pt-0.5 font-mono text-[10.5px] text-faint max-lg:hidden">
-                {doc.chunks} ch
+                {chunkCount(doc)} ch
               </span>
 
               {/* Metadata gives way to row actions on hover — same footprint, no reflow. */}
@@ -162,18 +195,18 @@ export function LibraryView({ initialCluster }: { initialCluster?: ClusterId }) 
                     {doc.domain}
                   </span>
                   <span className="w-14 text-right font-mono text-[10.5px] text-faint">
-                    {doc.savedLabel}
+                    {savedLabel(doc)}
                   </span>
                 </span>
                 <span className="hidden items-center gap-1.5 group-hover:flex">
-                  <Button size="sm" className="max-xl:hidden">
+                  <ButtonLink href={`/ask?doc=${doc.id}`} size="sm" className="max-xl:hidden">
                     <AskIcon size={14} />
                     Ask
-                  </Button>
-                  <Button size="sm">
+                  </ButtonLink>
+                  <ButtonLink href={doc.url} target="_blank" rel="noreferrer" size="sm">
                     <ExternalIcon size={14} />
                     Open
-                  </Button>
+                  </ButtonLink>
                   <Button size="sm" aria-label="Remove" className="w-7 px-0 text-faint">
                     <TrashIcon size={14} />
                   </Button>

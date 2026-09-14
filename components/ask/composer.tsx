@@ -6,16 +6,20 @@ import { ArrowUpIcon } from "@/components/icons";
 import { Chip } from "@/components/ui/chip";
 import { LIBRARY_STATS } from "@/lib/data/library";
 
-const SCOPES = ["Whole library", "Last 30 days", "Cluster: Frontend"];
+const BASE_SCOPES = ["Whole library", "Last 30 days", "Unread only"];
 
 export function Composer({
   onSubmit,
   busy,
+  scopeDoc,
 }: {
   onSubmit: (question: string) => void;
   busy: boolean;
+  /** Arriving from a document narrows the search to it until you widen it. */
+  scopeDoc?: { id: string; title: string };
 }) {
   const [value, setValue] = useState("");
+  const scopes = scopeDoc ? [`In: ${scopeDoc.title}`, ...BASE_SCOPES] : BASE_SCOPES;
   const [scope, setScope] = useState(0);
 
   function submit() {
@@ -51,8 +55,13 @@ export function Composer({
         <div className="h-px bg-rule-soft" />
         <div className="flex items-center justify-between gap-3 py-2.5 pr-2.5 pl-3">
           <div className="flex items-center gap-[7px] overflow-x-auto">
-            {SCOPES.map((label, i) => (
-              <Chip key={label} active={scope === i} onClick={() => setScope(i)}>
+            {scopes.map((label, i) => (
+              <Chip
+                key={label}
+                active={scope === i}
+                onClick={() => setScope(i)}
+                className="max-w-[15rem] [&>span:first-child]:truncate"
+              >
                 {label}
               </Chip>
             ))}

@@ -9,6 +9,6 @@ export default async function LibraryPage({
   searchParams: Promise<{ cluster?: string }>;
 }) {
   const { cluster } = await searchParams;
-  const valid = CLUSTERS.some((c) => c.id === cluster);
-  return <LibraryView initialCluster={valid ? (cluster as ClusterId) : undefined} />;
+  const known = CLUSTERS.some((c) => c.id === cluster) || cluster === "unplaced";
+  return <LibraryView initialFilter={known ? (cluster as ClusterId | "unplaced") : undefined} />;
 }

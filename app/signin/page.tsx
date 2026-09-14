@@ -3,7 +3,7 @@ import Link from "next/link";
 import { GoogleMark, Mark } from "@/components/icons";
 import { Wordmark } from "@/components/workspace/wordmark";
 import { CLUSTER_LABELS, LIBRARY_GRAPH as graph } from "@/lib/graph-layout";
-import { clusterById, LIBRARY_STATS } from "@/lib/data/library";
+import { CLUSTERS, LIBRARY_STATS } from "@/lib/data/library";
 
 export const metadata = { title: "Sign in · Contextualize" };
 
@@ -33,22 +33,26 @@ export default function SignInPage() {
           );
         })}
         {graph.nodes.map((node) => (
-          <circle key={node.id} cx={node.x} cy={node.y} r={node.r} fill={node.color} />
+          <circle key={node.docId} cx={node.x} cy={node.y} r={node.r} fill={node.color} />
         ))}
-        {CLUSTER_LABELS.map((anchor) => (
-          <text
-            key={anchor.id}
-            x={anchor.x}
-            y={anchor.y}
-            fill={clusterById(anchor.id).color}
-            textAnchor="middle"
-            className="font-mono"
-            fontSize={11}
-            letterSpacing={1.3}
-          >
-            {clusterById(anchor.id).name.toUpperCase()}
-          </text>
-        ))}
+        {CLUSTER_LABELS.map((anchor) => {
+          const cluster = CLUSTERS.find((c) => c.id === anchor.id);
+          if (!cluster) return null;
+          return (
+            <text
+              key={anchor.id}
+              x={anchor.x}
+              y={anchor.y}
+              fill={cluster.color}
+              textAnchor="middle"
+              className="font-mono"
+              fontSize={11}
+              letterSpacing={1.3}
+            >
+              {cluster.name.toUpperCase()}
+            </text>
+          );
+        })}
       </svg>
 
       <header className="relative flex h-18 items-center justify-between px-6 lg:px-10">

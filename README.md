@@ -26,16 +26,19 @@ Four principles run through it:
 
 ### Routes
 
-| Route             | What it is                                                      |
-| ----------------- | --------------------------------------------------------------- |
-| `/`               | Landing page                                                    |
-| `/signin`         | Google sign-in (the whole form)                                  |
-| `/ask`            | The RAG conversation, with a rail showing the retrieved passages |
-| `/library`        | The catalogue — search, cluster and unread filters, sorting      |
-| `/library/[id]`   | Reader, with chunk boundaries marked in the margin               |
-| `/graph`          | The knowledge graph: clusters, bridges, similarity floor         |
+| Route           | What it is                                                       |
+| --------------- | ---------------------------------------------------------------- |
+| `/`             | Landing page                                                     |
+| `/signin`       | Google sign-in (the whole form)                                   |
+| `/ask`          | The RAG conversation, with a rail showing the retrieved passages  |
+| `/library`      | The catalogue — search, filters, sorting                          |
+| `/library/[id]` | Reader, with the chunk map and boundaries marked in the margin    |
+| `/graph`        | The knowledge graph: clusters, bridges, similarity floor          |
+| `/foundations`  | The living styleguide, rendered from the real components          |
 
-`⌘K` opens the capture dialog from anywhere in the workspace.
+`⌘K` opens the capture dialog from anywhere in the workspace. `/ask?doc=<id>`
+scopes the next question to one document — that is what the reader's "Ask about
+this document" and the library row action do.
 
 ### Layout of the code
 
@@ -43,18 +46,26 @@ Four principles run through it:
 app/
   globals.css              design tokens (the palette, type, geometry, depth)
   layout.tsx               fonts and metadata
+  icon.tsx                 the mark, rendered as the favicon
+  not-found.tsx            404
   page.tsx                 landing
-  signin/
+  signin/  foundations/
   (workspace)/             the signed-in shell: sidebar + mobile chrome
-    ask/  library/  graph/
+    ask/  library/  graph/  + loading.tsx skeletons
 components/
-  ui/                      button, chip, tag, label, similarity, citation, status
+  ui/                      button, chip, tag, label, similarity, citation,
+                           status, skeleton
   workspace/               sidebar, top bar, mobile chrome, capture dialog
-  ask/  library/  document/  graph/  marketing/
+  ask/  library/  graph/  marketing/
 lib/
-  data/library.ts          typed sample data + the askLibrary() seam
-  graph-layout.ts          deterministic cluster projection for the graph
+  data/library.ts          the sample library + the askLibrary() seam
+  graph-layout.ts          deterministic projection of the library
 ```
+
+Everything on screen is derived from `DOCS` in `lib/data/library.ts` — cluster
+counts, the index meter, chunk totals, catalogue numbers, the graph, the
+"nearest in your library" list. There are no separately-maintained numbers to
+drift out of step, so growing the library grows the whole interface.
 
 ### Wiring it to the backend
 
@@ -64,8 +75,13 @@ one seam to replace:
 - `askLibrary(question)` stands in for `POST /api/chat` — embed the question,
   call the `match_documents` RPC, hand the chunks to the model. It returns the
   `Answer` shape the UI consumes.
-- `DOCS`, `DOC_BODY` and `NEAREST` stand in for the `documents` and
-  `document_chunks` tables.
+- `DOCS` and `DOC_BODY` stand in for the `documents` and `document_chunks`
+  tables. `chunkCount`, `readingMinutes`, `savedLabel` and `docRef` are derived
+  from a document, so real rows need only the columns the schema already has.
+- `lib/graph-layout.ts` projects the library into two dimensions. A real build
+  runs UMAP over the 1536-dimension vectors and feeds the result to
+  `buildLibraryGraph`; `nearestTo()` becomes an `ORDER BY` on embedding
+  distance.
 - The capture dialog (`components/workspace/capture-dialog.tsx`) drives its
   stages from a timer; point it at `POST /api/ingest` and drive them from the
   response instead.
